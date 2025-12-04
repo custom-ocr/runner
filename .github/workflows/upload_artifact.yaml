@@ -4,12 +4,19 @@ on:
   push:
     branches:
       - main
+  # Trigger manual workflow via the workflow_dispatch trigger (must be a top-level key)
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: 'Name of the Cloud Function'
+        required: true
+        default: 'ocr'
 permissions:
   contents: read
   id-token: write
 
 env:
-  FUNCTION_NAME: 'your-function-name'  # Update with your function name
+  FUNCTION_NAME: ${{ github.event.inputs.function_name }}
   GCP_REGION: 'us-central1'
 
 jobs:
@@ -33,7 +40,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Build function package
-        working-directory: function
+        working-directory: .
         run: |
           echo "Building function package..."
           zip -r ../function.zip .
@@ -66,4 +73,3 @@ jobs:
         run: |
           echo "📦 Function deployed successfully!"
           echo "File: gs://${{ secrets.GCS_BUCKET_NAME }}/${FILE_NAME}"
-            
