@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  # Trigger manual workflow via the workflow_dispatch trigger (must be a top-level key)
   workflow_dispatch:
     inputs:
       function_name:
@@ -31,9 +30,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          # Workload Identity Provider (from terraform output)
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          # Service Account email (from terraform output)
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
@@ -51,12 +48,13 @@ jobs:
           BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           FILE_NAME="${FUNCTION_NAME}-${TIMESTAMP}.zip"
-
+          echo "Verifying authentication..."
+          gcloud auth list
           echo "Uploading to gs://${BUCKET_NAME}/${FILE_NAME}"
-          gsutil cp function.zip "gs://${BUCKET_NAME}/${FILE_NAME}"
+          gcloud storage cp function.zip "gs://${BUCKET_NAME}/${FUNCTION_NAME}-${TIMESTAMP}.zip"
 
           # Also upload as latest for easy reference
-          gsutil cp function.zip "gs://${BUCKET_NAME}/${FUNCTION_NAME}-latest.zip"
+          gcloud storage cp function.zip "gs://${BUCKET_NAME}/${FUNCTION_NAME}-latest.zip"
 
           echo "✅ Upload complete!"
           echo "FILE_NAME=${FILE_NAME}" >> $GITHUB_ENV
