@@ -15,7 +15,7 @@ permissions:
   id-token: write
 
 env:
-  FUNCTION_NAME: ${{ github.event.inputs.function_name }}
+  FUNCTION_NAME: ${{ github.event.inputs.function_name || 'ocr' }}
   GCP_REGION: 'us-central1'
 
 jobs:
