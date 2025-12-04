@@ -1,0 +1,69 @@
+name: Deploy Cloud Function
+
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  FUNCTION_NAME: 'your-function-name'  # Update with your function name
+  GCP_REGION: 'us-central1'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          # Workload Identity Provider (from terraform output)
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          # Service Account email (from terraform output)
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build function package
+        working-directory: function
+        run: |
+          echo "Building function package..."
+          zip -r ../function.zip .
+          echo "Function package size: $(du -h ../function.zip | cut -f1)"
+
+      - name: Upload function to GCS
+        run: |
+          BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          FILE_NAME="${FUNCTION_NAME}-${TIMESTAMP}.zip"
+
+          echo "Uploading to gs://${BUCKET_NAME}/${FILE_NAME}"
+          gsutil cp function.zip "gs://${BUCKET_NAME}/${FILE_NAME}"
+
+          # Also upload as latest for easy reference
+          gsutil cp function.zip "gs://${BUCKET_NAME}/${FUNCTION_NAME}-latest.zip"
+
+          echo "✅ Upload complete!"
+          echo "FILE_NAME=${FILE_NAME}" >> $GITHUB_ENV
+
+      - name: Verify upload
+        run: |
+
+          BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          echo "Verifying uploaded file..."
+          gsutil ls -lh "gs://${BUCKET_NAME}/${FUNCTION_NAME}-latest.zip"
+
+      - name: Comment on commit (optional)
+        if: github.event_name == 'push'
+        run: |
+          echo "📦 Function deployed successfully!"
+          echo "File: gs://${{ secrets.GCS_BUCKET_NAME }}/${FILE_NAME}"
+            
