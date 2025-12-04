@@ -40,8 +40,8 @@ jobs:
         working-directory: .
         run: |
           echo "Building function package..."
-          zip -r ../function.zip .
-          echo "Function package size: $(du -h ../function.zip | cut -f1)"
+          zip -r ./function.zip .
+          echo "Function package size: $(du -h ./function.zip | cut -f1)"
 
       - name: Upload function to GCS
         run: |
